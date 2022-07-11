@@ -98,6 +98,10 @@ window.onload = async () => {
       if (resp.status != 200) {
         const msg = body.msg ? `: ${body.msg}` : "";
         $("#info").textContent = `Error ${resp.statusText}${msg}`;
+        if (resp.status == 401) {
+          $("#info").textContent += "\n(Refreshing auth in 3s)";
+          setTimeout(() => (window.location.href = "/"), 3000);
+        }
         return;
       }
       $("#info").textContent = `Success!`;
