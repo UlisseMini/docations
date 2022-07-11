@@ -1,0 +1,20 @@
+[Unit]
+Description=Docations location manager for discord
+Wants=network-online.target
+After=network-online.target
+
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/node index.js
+WorkingDirectory=/home/uli/docations
+User=uli
+
+Restart=always
+RestartSec=3
+StartLimitIntervalSec=0
+
+[Install]
+WantedBy=multi-user.target
+
