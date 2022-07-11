@@ -2,6 +2,13 @@ function $(x) {
   return document.querySelector(x);
 }
 
+function createOverlayElement(userInfo) {
+  const el = document.createElement("span");
+  el.textContent = userInfo.username;
+  console.log(el);
+  return el;
+}
+
 window.onload = async () => {
   const fragment = new URLSearchParams(window.location.hash.slice(1));
   const [accessToken, tokenType] = [
@@ -13,16 +20,24 @@ window.onload = async () => {
     return (document.getElementById("login").style.display = "block");
   }
 
-  const resp = await fetch("https://discord.com/api/users/@me", {
-    headers: {
-      authorization: `${tokenType} ${accessToken}`,
-    },
+  const map = new ol.Map({
+    target: "map",
+    layers: [
+      new ol.layer.Tile({
+        source: new ol.source.OSM(),
+      }),
+    ],
+    view: new ol.View({
+      center: ol.proj.fromLonLat([37.41, 8.82]), // <--- africa default
+      zoom: 4,
+    }),
   });
-  const { username, discriminator } = await resp.json();
-  $("#info").textContent = `Hello ${username}#${discriminator}`;
+  console.log(map);
 
+  $("#info").textContent = "Getting location...";
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
+      $("#info").textContent = "Getting discord info...";
       const resp = await fetch("/pos", {
         method: "POST",
         body: JSON.stringify({
@@ -34,11 +49,21 @@ window.onload = async () => {
           "Content-Type": "application/json",
         },
       });
+      const body = await resp.json();
+      const userInfo = body.userInfo;
       if (resp.status == 200) {
-        $("#info").textContent = "Location Updated successfully";
+        $("#info").textContent = JSON.stringify(body.userInfo, null, 2);
       } else {
         $("#info").textContent = `Update failed: ${resp.statusText}`;
       }
+
+      const [lon, lat] = [pos.coords.longitude, pos.coords.latitude];
+      map.getView().setCenter(ol.proj.fromLonLat([lon, lat]));
+      const overlay = new ol.Overlay({
+        element: createOverlayElement(userInfo),
+      });
+      overlay.setPosition(ol.proj.fromLonLat([lon, lat]));
+      map.addOverlay(overlay);
     },
     (err) => {
       alert(`Failed to get position: ${err}`);

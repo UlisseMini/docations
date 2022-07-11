@@ -32,7 +32,7 @@ app.post("/pos", async (req, res) => {
   const userInfo = await resp.json();
   db.users[userInfo.id] = { ...req.body, ...userInfo };
   console.log(db.users);
-  res.send({ status: "ok" });
+  res.send({ status: "ok", userInfo: userInfo });
 });
 
 app.listen(port, () =>
