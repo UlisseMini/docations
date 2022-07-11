@@ -2,9 +2,11 @@
   "name": "docations",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "author": "Ulisse Mini <ulisse.mini@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.1"
+    "express": "^4.18.1",
+    "node-fetch": "^3.2.6"
   }
 }

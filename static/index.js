@@ -20,4 +20,28 @@ window.onload = async () => {
   });
   const { username, discriminator } = await resp.json();
   $("#info").textContent = `Hello ${username}#${discriminator}`;
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const resp = await fetch("/pos", {
+        method: "POST",
+        body: JSON.stringify({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        }),
+        headers: {
+          Authorization: `${tokenType} ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (resp.status == 200) {
+        $("#info").textContent = "Location Updated successfully";
+      } else {
+        $("#info").textContent = `Update failed: ${resp.statusText}`;
+      }
+    },
+    (err) => {
+      alert(`Failed to get position: ${err}`);
+    }
+  );
 };
