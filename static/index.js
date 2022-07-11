@@ -113,7 +113,7 @@ window.onload = async () => {
       });
     },
     (err) => {
-      alert(`Failed to get position: ${err}`);
+      alert(`Failed to get position: ${err.message} (code ${err.code})`);
     }
   );
 };
