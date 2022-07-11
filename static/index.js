@@ -59,11 +59,13 @@ window.onload = async () => {
 
       const [lon, lat] = [pos.coords.longitude, pos.coords.latitude];
       map.getView().setCenter(ol.proj.fromLonLat([lon, lat]));
-      const overlay = new ol.Overlay({
-        element: createOverlayElement(userInfo),
-      });
-      overlay.setPosition(ol.proj.fromLonLat([lon, lat]));
-      map.addOverlay(overlay);
+      map.addOverlay(
+        new ol.Overlay({
+          element: createOverlayElement(userInfo),
+          positioning: "center-center",
+          position: ol.proj.fromLonLat([lon, lat]),
+        })
+      );
     },
     (err) => {
       alert(`Failed to get position: ${err}`);
