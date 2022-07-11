@@ -1,13 +1,15 @@
 function $(x) {
   return document.querySelector(x);
 }
-
 function createOverlayElement(userInfo) {
   const el = document.createElement("span");
   el.textContent = userInfo.username;
   console.log(el);
   return el;
 }
+
+const oauth2URL =
+  "https://discord.com/api/oauth2/authorize?client_id=995090042861133864&redirect_uri=http%3A%2F%2Flocalhost%3A8000&response_type=token&scope=identify%20guilds";
 
 window.onload = async () => {
   const fragment = new URLSearchParams(window.location.hash.slice(1));
@@ -16,8 +18,9 @@ window.onload = async () => {
     fragment.get("token_type"),
   ];
 
+  // TODO: Save accessToken in localStorage till it expires
   if (!accessToken) {
-    return (document.getElementById("login").style.display = "block");
+    return (window.location = oauth2URL);
   }
 
   const map = new ol.Map({
@@ -28,8 +31,8 @@ window.onload = async () => {
       }),
     ],
     view: new ol.View({
-      center: ol.proj.fromLonLat([37.41, 8.82]), // <--- africa default
-      zoom: 4,
+      center: [0, 0],
+      zoom: 0,
     }),
   });
   console.log(map);
@@ -52,13 +55,14 @@ window.onload = async () => {
       const body = await resp.json();
       const userInfo = body.userInfo;
       if (resp.status == 200) {
-        $("#info").textContent = JSON.stringify(body.userInfo, null, 2);
+        $("#info").textContent = `Success!`;
       } else {
         $("#info").textContent = `Update failed: ${resp.statusText}`;
       }
 
       const [lon, lat] = [pos.coords.longitude, pos.coords.latitude];
       map.getView().setCenter(ol.proj.fromLonLat([lon, lat]));
+      map.getView().setZoom(5);
       map.addOverlay(
         new ol.Overlay({
           element: createOverlayElement(userInfo),
