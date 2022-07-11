@@ -1,11 +1,43 @@
 function $(x) {
   return document.querySelector(x);
 }
-function createOverlayElement(userInfo) {
-  const el = document.createElement("span");
-  el.textContent = userInfo.username;
-  console.log(el);
+function h(tag, attrs, children) {
+  const el = document.createElement(tag);
+  for (const attr in attrs) {
+    if (attr.startsWith("on")) {
+      el.addEventListener(attr.slice(2), attrs[attr]);
+    } else {
+      el.setAttribute(attr, attrs[attr]);
+    }
+  }
+  if (children) children.forEach((child) => el.append(child));
+
   return el;
+}
+
+function createOverlayElement(u) {
+  let name, img;
+  const swap = () => {
+    [name.style.display, img.style.display] = [
+      img.style.display,
+      name.style.display,
+    ];
+  };
+
+  name = h("div", { onclick: swap, style: "display: none;" }, [u.username]);
+  img = h(
+    "img",
+    {
+      src: `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=80`,
+      class: "avatar",
+      style: "display: block;",
+      title: u.username,
+      onclick: swap,
+    },
+    []
+  );
+
+  return h("div", {}, [name, img]);
 }
 
 const redirect_uri =
