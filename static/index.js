@@ -8,8 +8,12 @@ function createOverlayElement(userInfo) {
   return el;
 }
 
-const oauth2URL =
-  "https://discord.com/api/oauth2/authorize?client_id=995090042861133864&redirect_uri=http%3A%2F%2Flocalhost%3A8000&response_type=token&scope=identify%20guilds";
+const redirect_uri =
+  window.location.hostname == "localhost"
+    ? encodeURIComponent("http://localhost:8000")
+    : encodeURIComponent("https://loc.uli.rocks");
+
+const oauth2URL = `https://discord.com/api/oauth2/authorize?client_id=995090042861133864&redirect_uri=${redirect_uri}&response_type=token&scope=identify%20guilds`;
 
 window.onload = async () => {
   window.onerror = (e) => ($("#info").textContent = `Error: ${e}`);
@@ -62,7 +66,7 @@ window.onload = async () => {
       if (resp.status == 200) {
         $("#info").textContent = `Success!`;
       } else {
-        const msg = ": " + (body.msg || "");
+        const msg = body.msg ? `: ${body.msg}` : "";
         $("#info").textContent = `Error ${resp.statusText}${msg}`;
         return;
       }

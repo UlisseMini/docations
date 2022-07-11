@@ -1,25 +1,29 @@
 import express from "express";
 import fetch from "node-fetch";
 import { port, guildID } from "./config.js";
+import { writeFile } from "fs/promises";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
-// TODO: save to disk
 const db = {
   users: {}, // userId -> {latitude, longitude, avatar, ...}
   guilds: {}, // userId -> guilds
 };
+const DB_PATH = join(dirname(fileURLToPath(import.meta.url)), "db.json");
 
 const app = express();
 
 app.use(express.json());
 
-app.use((req, _res, next) => {
-  console.log(`${req.method} ${req.url}`);
-  next();
-});
-
 app.use("/", express.static("static"));
 
 app.post("/pos", async (req, res) => {
+  // make it slightly harder to break... only slightly
+  if (typeof req.body.latitude !== "number")
+    res.status(400).send("bad latitude");
+  if (typeof req.body.longitude !== "number")
+    res.status(400).send("bad longitude");
+
   try {
     // Authentication: Check they're in guildID
     const guildsResp = await fetch("https://discord.com/api/users/@me/guilds", {
@@ -43,14 +47,9 @@ app.post("/pos", async (req, res) => {
     }
     const userInfo = await userResp.json();
 
-    db.users[userInfo.id] = { ...req.body, ...userInfo };
+    db.users[userInfo.id] = { ...req.body, ...userInfo, date: Date.now() };
     db.guilds[userInfo.id] = guilds;
-
-    // make it slightly harder to break... only slightly
-    if (typeof req.body.latitude !== "number")
-      res.status(400).send("bad latitude");
-    if (typeof req.body.longitude !== "number")
-      res.status(400).send("bad longitude");
+    await writeFile(DB_PATH, JSON.stringify(db)); // save db
 
     res.send({ status: "ok", users: db.users });
   } catch (e) {
