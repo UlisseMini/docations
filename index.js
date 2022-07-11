@@ -1,15 +1,20 @@
 import express from "express";
 import fetch from "node-fetch";
 import { port, guildID } from "./config.js";
-import { writeFile } from "fs/promises";
+import { writeFile, readFile } from "fs/promises";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
-const db = {
+let db = {
   users: {}, // userId -> {latitude, longitude, avatar, ...}
   guilds: {}, // userId -> guilds
 };
 const DB_PATH = join(dirname(fileURLToPath(import.meta.url)), "db.json");
+try {
+  db = JSON.parse(await readFile(DB_PATH, { encoding: "utf8" }));
+} catch (e) {
+  console.error(`Failed to read ${DB_PATH}: ${e}`);
+}
 
 const app = express();
 
