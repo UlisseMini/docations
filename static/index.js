@@ -63,13 +63,12 @@ window.onload = async () => {
         },
       });
       const body = await resp.json();
-      if (resp.status == 200) {
-        $("#info").textContent = `Success!`;
-      } else {
+      if (resp.status != 200) {
         const msg = body.msg ? `: ${body.msg}` : "";
         $("#info").textContent = `Error ${resp.statusText}${msg}`;
         return;
       }
+      $("#info").textContent = `Success!`;
 
       Object.values(body.users).forEach((u) => {
         map.addOverlay(
