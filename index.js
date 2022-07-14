@@ -11,6 +11,17 @@ let db = {
 const DB_PATH = join(dirname(fileURLToPath(import.meta.url)), "db.json");
 try {
   db = JSON.parse(await readFile(DB_PATH, { encoding: "utf8" }));
+  if (db.users) {
+    // migrate from previous schema (this is messy and duplicates lat/lon, who cares)
+    db.members = Object.fromEntries(
+      Object.entries(db.users).map(([id, u]) => [
+        id,
+        { latitude: u.latitude, longitude: u.longitude, user: u },
+      ])
+    );
+    delete db.users;
+    delete db.guilds;
+  }
 } catch (e) {
   console.error(`Failed to read ${DB_PATH}: ${e}`);
 }
@@ -39,7 +50,6 @@ app.post("/pos", async (req, res) => {
       return res.status(guildsResp.status).send(await guildsResp.json());
     }
     const guildMember = await guildMemberResp.json();
-    console.log(guildMember);
 
     db.members[guildMember.user.id] = {
       ...req.body,
