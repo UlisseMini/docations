@@ -19,6 +19,11 @@ function createOverlayElement(m) {
   const username = m.nick || m.user.username;
   const avatar = m.avatar || m.user.avatar;
 
+  const defaultNum = m.user.discriminator % 5;
+  const avatarURL = avatar
+    ? `https://cdn.discordapp.com/avatars/${m.user.id}/${avatar}.png`
+    : `https://cdn.discordapp.com/embed/avatars/${defaultNum}.png`;
+
   let name, img;
   const swap = () => {
     [name.style.display, img.style.display] = [
@@ -31,7 +36,7 @@ function createOverlayElement(m) {
   img = h(
     "img",
     {
-      src: `https://cdn.discordapp.com/avatars/${m.user.id}/${avatar}.png?size=80`,
+      src: avatarURL + "?size=80",
       class: "avatar",
       style: "display: block;",
       title: username,
