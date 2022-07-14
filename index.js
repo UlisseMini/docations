@@ -6,8 +6,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
 let db = {
-  users: {}, // userId -> {latitude, longitude, avatar, ...}
-  guilds: {}, // userId -> guilds
+  members: {}, // userId -> {latitude, longitude, avatar, ...}
 };
 const DB_PATH = join(dirname(fileURLToPath(import.meta.url)), "db.json");
 try {
@@ -30,33 +29,26 @@ app.post("/pos", async (req, res) => {
     res.status(400).send("bad longitude");
 
   try {
-    // Authentication: Check they're in guildID
-    const guildsResp = await fetch("https://discord.com/api/users/@me/guilds", {
-      headers: { authorization: req.headers.authorization },
-    });
-    if (guildsResp.status != 200) {
+    const guildMemberResp = await fetch(
+      `https://discord.com/api/users/@me/guilds/${guildID}/member`,
+      {
+        headers: { authorization: req.headers.authorization },
+      }
+    );
+    if (guildMemberResp.status != 200) {
       return res.status(guildsResp.status).send(await guildsResp.json());
     }
-    const guilds = await guildsResp.json();
-    if (!guilds.map((g) => g.id).includes(guildID)) {
-      return res
-        .status(401)
-        .send({ status: "err", msg: "Not in proper guild" });
-    }
+    const guildMember = await guildMemberResp.json();
+    console.log(guildMember);
 
-    const userResp = await fetch("https://discord.com/api/users/@me", {
-      headers: { authorization: req.headers.authorization },
-    });
-    if (userResp.status != 200) {
-      return res.status(userResp.status).send(await userResp.json());
-    }
-    const userInfo = await userResp.json();
-
-    db.users[userInfo.id] = { ...req.body, ...userInfo, date: Date.now() };
-    db.guilds[userInfo.id] = guilds;
+    db.members[guildMember.user.id] = {
+      ...req.body,
+      ...guildMember,
+      date: Date.now(),
+    };
     await writeFile(DB_PATH, JSON.stringify(db)); // save db
 
-    res.send({ status: "ok", users: db.users });
+    res.send({ status: "ok", members: db.members });
   } catch (e) {
     console.error(e);
     res.status(500).send({ status: "err" });
