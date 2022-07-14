@@ -15,7 +15,10 @@ function h(tag, attrs, children) {
   return el;
 }
 
-function createOverlayElement(u) {
+function createOverlayElement(m) {
+  const username = m.nick || m.user.username;
+  const avatar = m.avatar || m.user.avatar;
+
   let name, img;
   const swap = () => {
     [name.style.display, img.style.display] = [
@@ -24,14 +27,14 @@ function createOverlayElement(u) {
     ];
   };
 
-  name = h("div", { onclick: swap, style: "display: none;" }, [u.username]);
+  name = h("div", { onclick: swap, style: "display: none;" }, [username]);
   img = h(
     "img",
     {
-      src: `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=80`,
+      src: `https://cdn.discordapp.com/avatars/${m.user.id}/${avatar}.png?size=80`,
       class: "avatar",
       style: "display: block;",
-      title: u.username,
+      title: username,
       onclick: swap,
     },
     []
@@ -45,7 +48,7 @@ const redirect_uri =
     ? encodeURIComponent("http://localhost:8000")
     : encodeURIComponent("https://loc.uli.rocks");
 
-const oauth2URL = `https://discord.com/api/oauth2/authorize?client_id=995090042861133864&redirect_uri=${redirect_uri}&response_type=token&scope=identify%20guilds`;
+const oauth2URL = `https://discord.com/api/oauth2/authorize?client_id=995090042861133864&redirect_uri=${redirect_uri}&response_type=token&scope=identify%20guilds.members.read`;
 
 window.onload = async () => {
   window.onerror = (e) => ($("#info").textContent = `Error: ${e}`);
@@ -102,12 +105,12 @@ window.onload = async () => {
       }
       $("#info").textContent = `Success!`;
 
-      Object.values(body.users).forEach((u) => {
+      Object.values(body.members).forEach((m) => {
         map.addOverlay(
           new ol.Overlay({
-            element: createOverlayElement(u),
+            element: createOverlayElement(m),
             positioning: "center-center",
-            position: ol.proj.fromLonLat([u.longitude, u.latitude]),
+            position: ol.proj.fromLonLat([m.longitude, m.latitude]),
           })
         );
       });
