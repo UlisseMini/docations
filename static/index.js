@@ -143,8 +143,6 @@ window.onload = async () => {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const [lon, lat] = [pos.coords.longitude, pos.coords.latitude];
-        map.getView().setCenter(ol.proj.fromLonLat([lon, lat]));
-        map.getView().setZoom(5);
 
         $("#info").textContent = "Updating location...";
         await updatePosition(accessToken, tokenType, {
@@ -153,7 +151,8 @@ window.onload = async () => {
         });
         overlays[myId].setPosition(ol.proj.fromLonLat([lon, lat]));
 
-        $("#info").textContent = `Update location`;
+        $("#info").textContent = `Location updated!`;
+        setTimeout(() => ($("#info").textContent = `Update location`), 2000);
       },
       (err) => {
         alert(`Failed to get position: ${err.message} (code ${err.code})`);
