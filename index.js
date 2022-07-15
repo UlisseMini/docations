@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 
 let db = {
   members: {}, // userId -> {latitude, longitude, avatar, ...}
+  cache: {}, // auth -> userId
 };
 const DB_PATH = join(dirname(fileURLToPath(import.meta.url)), "db.json");
 try {
@@ -22,6 +23,7 @@ try {
     delete db.users;
     delete db.guilds;
   }
+  if (!db.cache) db.cache = {};
 } catch (e) {
   console.error(`Failed to read ${DB_PATH}: ${e}`);
 }
@@ -32,37 +34,52 @@ app.use(express.json());
 
 app.use("/", express.static("static"));
 
+async function authenticate(req) {
+  const auth = req.headers.authorization;
+  let id;
+  if ((id = db.cache[auth])) {
+    // TODO: Check db.members[id].date and remove if old
+    return db.members[id];
+  }
+
+  const resp = await fetch(
+    `https://discord.com/api/users/@me/guilds/${guildID}/member`,
+    {
+      headers: { authorization: auth },
+    }
+  );
+  if (resp.status != 200) {
+    throw new Error(`${resp.status}: ${await resp.text()}`);
+  }
+  const guildMember = await resp.json();
+  db.cache[auth] = guildMember;
+  return guildMember;
+}
+
+app.get("/pos", async (req, res) => {
+  const m = await authenticate(req, res);
+  return res.send({ status: "ok", members: db.members, myId: m.user.id });
+});
+
 app.post("/pos", async (req, res) => {
+  const guildMember = await authenticate(req, res);
+
   // make it slightly harder to break... only slightly
   if (typeof req.body.latitude !== "number")
-    res.status(400).send("bad latitude");
+    return res.status(400).send("bad latitude");
   if (typeof req.body.longitude !== "number")
-    res.status(400).send("bad longitude");
+    return res.status(400).send("bad longitude");
 
-  try {
-    const guildMemberResp = await fetch(
-      `https://discord.com/api/users/@me/guilds/${guildID}/member`,
-      {
-        headers: { authorization: req.headers.authorization },
-      }
-    );
-    if (guildMemberResp.status != 200) {
-      return res.status(guildsResp.status).send(await guildsResp.json());
-    }
-    const guildMember = await guildMemberResp.json();
+  db.members[guildMember.user.id] = {
+    ...guildMember,
+    // make sure these come after so they update guildMember!
+    latitude: req.body.latitude,
+    longitude: req.body.longitude,
+    date: Date.now(),
+  };
+  await writeFile(DB_PATH, JSON.stringify(db)); // save db
 
-    db.members[guildMember.user.id] = {
-      ...req.body,
-      ...guildMember,
-      date: Date.now(),
-    };
-    await writeFile(DB_PATH, JSON.stringify(db)); // save db
-
-    res.send({ status: "ok", members: db.members });
-  } catch (e) {
-    console.error(e);
-    res.status(500).send({ status: "err" });
-  }
+  res.send({ status: "ok", members: db.members });
 });
 
 app.listen(port, () =>

@@ -55,6 +55,45 @@ const redirect_uri =
 
 const oauth2URL = `https://discord.com/api/oauth2/authorize?client_id=995090042861133864&redirect_uri=${redirect_uri}&response_type=token&scope=identify%20guilds.members.read`;
 
+function raiseForStatus(resp, body) {
+  if (resp.status != 200) {
+    const msg = body.msg ? `: ${body.msg}` : "";
+    $("#info").textContent = `Error ${resp.statusText}${msg}`;
+    if (resp.status == 401) {
+      $("#info").textContent += "\n(Refreshing auth in 3s)";
+      setTimeout(() => (window.location.href = "/"), 3000);
+    }
+    throw new Error(`Error, status ${resp.status}`);
+  }
+}
+
+async function updatePosition(accessToken, tokenType, pos) {
+  const resp = await fetch("/pos", {
+    method: "POST",
+    body: JSON.stringify(pos),
+    headers: {
+      Authorization: `${tokenType} ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+  });
+  const body = await resp.json();
+  raiseForStatus(resp, body);
+  return body;
+}
+
+async function getPositions(accessToken, tokenType) {
+  const resp = await fetch("/pos", {
+    method: "GET",
+    headers: {
+      Authorization: `${tokenType} ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+  });
+  const body = await resp.json();
+  raiseForStatus(resp, body);
+  return body;
+}
+
 window.onload = async () => {
   window.onerror = (e) => ($("#info").textContent = `Error: ${e}`);
 
@@ -81,51 +120,44 @@ window.onload = async () => {
       zoom: 0,
     }),
   });
-  console.log(map);
 
-  $("#info").textContent = "Getting location...";
-  navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      const [lon, lat] = [pos.coords.longitude, pos.coords.latitude];
-      map.getView().setCenter(ol.proj.fromLonLat([lon, lat]));
-      map.getView().setZoom(5);
+  // Setup map, get positions of the others and put them on the map.
+  const { myId, members } = await getPositions(accessToken, tokenType);
+  const overlays = {};
+  for (const m of Object.values(members)) {
+    overlays[m.user.id] = new ol.Overlay({
+      element: createOverlayElement(m),
+      positioning: "center-center",
+      position: ol.proj.fromLonLat([m.longitude, m.latitude]),
+    });
+    map.addOverlay(overlays[m.user.id]);
+  }
 
-      $("#info").textContent = "Getting discord info...";
-      const resp = await fetch("/pos", {
-        method: "POST",
-        body: JSON.stringify({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        }),
-        headers: {
-          Authorization: `${tokenType} ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-      const body = await resp.json();
-      if (resp.status != 200) {
-        const msg = body.msg ? `: ${body.msg}` : "";
-        $("#info").textContent = `Error ${resp.statusText}${msg}`;
-        if (resp.status == 401) {
-          $("#info").textContent += "\n(Refreshing auth in 3s)";
-          setTimeout(() => (window.location.href = "/"), 3000);
-        }
-        return;
+  // Setup Updating location button
+  $("#info").textContent = `Update location`;
+  $("#info").disabled = false;
+
+  $("#info").addEventListener("click", () => {
+    $("#info").textContent = "Getting location...";
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const [lon, lat] = [pos.coords.longitude, pos.coords.latitude];
+        map.getView().setCenter(ol.proj.fromLonLat([lon, lat]));
+        map.getView().setZoom(5);
+
+        $("#info").textContent = "Updating location...";
+        await updatePosition(accessToken, tokenType, {
+          latitude: lat,
+          longitude: lon,
+        });
+        overlays[myId].setPosition(ol.proj.fromLonLat([lon, lat]));
+
+        $("#info").textContent = `Update location`;
+      },
+      (err) => {
+        alert(`Failed to get position: ${err.message} (code ${err.code})`);
       }
-      $("#info").textContent = `Success!`;
-
-      Object.values(body.members).forEach((m) => {
-        map.addOverlay(
-          new ol.Overlay({
-            element: createOverlayElement(m),
-            positioning: "center-center",
-            position: ol.proj.fromLonLat([m.longitude, m.latitude]),
-          })
-        );
-      });
-    },
-    (err) => {
-      alert(`Failed to get position: ${err.message} (code ${err.code})`);
-    }
-  );
+    );
+  });
 };
