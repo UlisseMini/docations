@@ -52,7 +52,7 @@ async function authenticate(req) {
     throw new Error(`${resp.status}: ${await resp.text()}`);
   }
   const guildMember = await resp.json();
-  db.cache[auth] = guildMember;
+  db.cache[auth] = guildMember.user.id;
   return guildMember;
 }
 
