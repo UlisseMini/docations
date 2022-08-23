@@ -99,14 +99,16 @@ window.onload = async () => {
 
   const fragment = new URLSearchParams(window.location.hash.slice(1));
   const [accessToken, tokenType] = [
-    fragment.get("access_token"),
-    fragment.get("token_type"),
+    fragment.get("access_token") || localStorage.accessToken,
+    fragment.get("token_type") || localStorage.tokenType,
   ];
 
   // TODO: Save accessToken in localStorage till it expires (url works for now)
   if (!accessToken) {
     return (window.location = oauth2URL);
   }
+  localStorage.accessToken = accessToken;
+  localStorage.tokenType = tokenType;
 
   const map = new ol.Map({
     target: "map",
