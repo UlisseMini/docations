@@ -53,6 +53,7 @@ async function authenticate(req) {
   }
   const guildMember = await resp.json();
   db.cache[auth] = guildMember.user.id;
+  db.members[guildMember.user.id] = guildMember;
   return guildMember;
 }
 
